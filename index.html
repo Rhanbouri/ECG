@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ECG Masterclass: Interactive 3D Physics</title>
+    <title>Ventricular Depolarization: The QRS Loop</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +12,7 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa; /* Light mode background */
+            background-color: #f8f9fa;
             color: #1f2937;
             overflow: hidden;
             margin: 0;
@@ -28,41 +28,66 @@
         }
 
         .glass-panel {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             border-radius: 16px;
         }
 
         .lead-btn {
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
         .lead-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .lead-btn.active {
-            background-color: #ef4444; /* Red-500 */
+            background-color: #dc2626; /* Red-600 */
             color: white;
-            border-color: #ef4444;
+            border-color: #dc2626;
         }
-
-        /* Custom Scrollbar for lead list */
-        ::-webkit-scrollbar {
+        /* Indicator for active lead angle */
+        .lead-btn.active::after {
+            content: '';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
             width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
         }
 
         #ecg-canvas {
             width: 100%;
             height: 100%;
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #dc2626;
+            cursor: pointer;
+            margin-top: -6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
         }
     </style>
 </head>
@@ -75,22 +100,43 @@
     <div class="relative z-10 flex flex-col h-screen pointer-events-none">
         
         <!-- Header -->
-        <div class="flex justify-between items-center p-6 w-full pointer-events-auto">
-            <div class="glass-panel px-6 py-3 flex items-center gap-4">
-                <div>
-                    <h1 class="text-xl font-bold text-gray-800">ECG Physics Engine</h1>
-                    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Based on Dipole Theory</p>
-                </div>
-                <div class="h-8 w-px bg-gray-300 mx-2"></div>
-                <div class="flex items-center gap-2 text-sm">
-                    <span class="w-3 h-3 rounded-full bg-red-500 block"></span> Depolarization
-                    <span class="w-3 h-3 rounded-full bg-blue-500 block ml-2"></span> Repolarization
-                </div>
+        <div class="flex justify-between items-start p-6 w-full pointer-events-auto">
+            <div class="glass-panel px-6 py-4 flex flex-col gap-1">
+                <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-red-600"></span>
+                    Ventricular Depolarization
+                </h1>
+                <p class="text-xs text-gray-500 font-medium tracking-wide uppercase">QRS Complex Simulation</p>
             </div>
             
-            <div class="glass-panel px-4 py-2">
-                <button id="play-pause-btn" class="text-gray-700 hover:text-red-500 font-medium transition">
-                    Pause Simulation
+            <div class="glass-panel px-6 py-3 flex items-center gap-6">
+                <!-- Speed Control -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between">
+                        <label for="speed-slider" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Rapidity</label>
+                        <span id="speed-val" class="text-xs font-mono text-red-600">0.5x</span>
+                    </div>
+                    <input type="range" id="speed-slider" min="0.1" max="3.0" step="0.1" value="0.5" class="w-32">
+                </div>
+
+                <div class="h-8 w-px bg-gray-200"></div>
+
+                <!-- Axis Control -->
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between">
+                        <label for="axis-slider" class="text-xs font-bold text-gray-500 uppercase tracking-wider">Heart Axis</label>
+                        <span id="axis-val" class="text-xs font-mono text-blue-600">60°</span>
+                    </div>
+                    <input type="range" id="axis-slider" min="-90" max="180" step="5" value="60" class="w-32">
+                </div>
+
+                <div class="h-8 w-px bg-gray-200"></div>
+
+                <button id="play-pause-btn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-600 transition">
+                    <!-- Pause Icon -->
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" id="icon-pause">
+                        <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                    </svg>
                 </button>
             </div>
         </div>
@@ -99,52 +145,64 @@
         <div class="flex flex-1 overflow-hidden px-6 pb-6 gap-6">
             
             <!-- Left Sidebar: Leads -->
-            <div class="glass-panel w-64 flex flex-col overflow-hidden pointer-events-auto">
-                <div class="p-4 border-b border-gray-100 bg-gray-50/50">
-                    <h2 class="text-sm font-semibold text-gray-600 uppercase">Select Lead</h2>
+            <div class="glass-panel w-64 flex flex-col overflow-hidden pointer-events-auto shadow-lg">
+                <div class="p-4 border-b border-gray-100 bg-gray-50/80">
+                    <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Frontal Plane Leads</h2>
                 </div>
-                <div class="overflow-y-auto flex-1 p-2 space-y-1">
-                    <div class="text-xs font-bold text-gray-400 px-2 py-1 mt-2">Limb Leads (Frontal)</div>
-                    <button class="lead-btn active w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('I')">Lead I</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('II')">Lead II</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('III')">Lead III</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('aVR')">aVR</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('aVL')">aVL</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('aVF')">aVF</button>
+                <div class="overflow-y-auto flex-1 p-3 space-y-2">
                     
-                    <div class="text-xs font-bold text-gray-400 px-2 py-1 mt-2">Precordial (Horizontal)</div>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V1')">V1 (Septal)</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V2')">V2 (Septal)</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V3')">V3 (Anterior)</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V4')">V4 (Anterior)</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V5')">V5 (Lateral)</button>
-                    <button class="lead-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium border border-transparent hover:bg-white" onclick="setLead('V6')">V6 (Lateral)</button>
+                    <div class="text-[10px] font-bold text-gray-400 px-1 mt-1 mb-1 uppercase">Bipolar (Einthoven)</div>
+                    <button class="lead-btn active w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('I')">
+                        Lead I <span class="block text-[10px] opacity-70 font-normal">0° (Lateral)</span>
+                    </button>
+                    <button class="lead-btn w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('II')">
+                        Lead II <span class="block text-[10px] opacity-70 font-normal">+60° (Inferior)</span>
+                    </button>
+                    <button class="lead-btn w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('III')">
+                        Lead III <span class="block text-[10px] opacity-70 font-normal">+120° (Inferior)</span>
+                    </button>
+                    
+                    <div class="text-[10px] font-bold text-gray-400 px-1 mt-3 mb-1 uppercase">Augmented Unipolar</div>
+                    <button class="lead-btn w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('aVR')">
+                        aVR <span class="block text-[10px] opacity-70 font-normal">-150° (Right)</span>
+                    </button>
+                    <button class="lead-btn w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('aVL')">
+                        aVL <span class="block text-[10px] opacity-70 font-normal">-30° (Left)</span>
+                    </button>
+                    <button class="lead-btn w-full text-left px-4 py-3 rounded-xl text-sm font-semibold border border-transparent bg-white shadow-sm" onclick="setLead('aVF')">
+                        aVF <span class="block text-[10px] opacity-70 font-normal">+90° (Foot)</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Middle: Invisible interactive area for rotation -->
-            <div class="flex-1 pointer-events-none">
-                <!-- Instructions Overlay -->
-                <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 glass-panel px-6 py-3 text-center pointer-events-none">
-                    <p class="text-sm text-gray-600">
-                        <span class="font-bold text-red-500">Red Arrow:</span> Cardiac Dipole Moment $\vec{p}(t)$<br>
-                        <span class="font-bold text-blue-500">Blue Line:</span> Lead Axis<br>
-                        <span class="text-xs text-gray-400 mt-1 block">Drag to rotate 3D view • Scroll to zoom</span>
+            <!-- Middle: Invisible interactive area -->
+            <div class="flex-1 pointer-events-none flex flex-col justify-end pb-10 items-center">
+                <div class="glass-panel px-6 py-4 text-center pointer-events-none animate-pulse">
+                    <p class="text-sm font-semibold text-gray-700">
+                        Current Phase: <span id="phase-indicator" class="text-red-600 font-bold">Septal</span>
                     </p>
                 </div>
             </div>
 
             <!-- Right: Real-time Graph -->
-            <div class="glass-panel w-96 flex flex-col pointer-events-auto relative overflow-hidden bg-white">
-                <div class="absolute inset-0 opacity-10" 
-                     style="background-image: linear-gradient(#ef4444 1px, transparent 1px), linear-gradient(90deg, #ef4444 1px, transparent 1px); background-size: 20px 20px;">
+            <div class="glass-panel w-96 flex flex-col pointer-events-auto relative overflow-hidden bg-white shadow-lg">
+                <!-- ECG Grid Background -->
+                <div class="absolute inset-0 opacity-20" 
+                     style="background-image: linear-gradient(#ef4444 0.5px, transparent 0.5px), linear-gradient(90deg, #ef4444 0.5px, transparent 0.5px); background-size: 20px 20px;">
                 </div>
-                <div class="p-4 border-b border-gray-100 relative z-10 bg-white/90 backdrop-blur">
-                    <div class="flex justify-between items-center">
-                        <h2 id="lead-title" class="text-lg font-bold text-gray-800">Lead I</h2>
-                        <span id="current-voltage" class="font-mono text-sm text-red-600 font-bold">0.00 mV</span>
+                <div class="absolute inset-0 opacity-20" 
+                     style="background-image: linear-gradient(#ef4444 0.2px, transparent 0.2px), linear-gradient(90deg, #ef4444 0.2px, transparent 0.2px); background-size: 4px 4px;">
+                </div>
+
+                <div class="p-5 border-b border-gray-100 relative z-10 bg-white/90 backdrop-blur flex justify-between items-end">
+                    <div>
+                        <h2 id="lead-title" class="text-2xl font-bold text-gray-800">Lead I</h2>
+                        <p id="lead-desc" class="text-xs text-gray-500 font-medium mt-1">Projecting on 0° Axis</p>
                     </div>
-                    <p id="lead-desc" class="text-xs text-gray-500 mt-1">Lateral view of the heart</p>
+                    <div class="text-right">
+                        <span id="current-voltage" class="font-mono text-xl text-red-600 font-bold tracking-tight">0.00</span>
+                        <span class="text-xs text-gray-400 font-bold block">mV</span>
+                    </div>
                 </div>
                 <div class="flex-1 relative">
                     <canvas id="ecg-canvas"></canvas>
@@ -156,135 +214,105 @@
     <script>
         // --- CONFIGURATION ---
         const CONFIG = {
-            heartRate: 60, // bpm
-            cycleDuration: 1000, // ms
-            speed: 1.0
+            speed: 0.5, // default simulation speed multiplier
+            loopDuration: 100, // abstract time units for one QRS loop
+            axisAngle: 60 // Degrees
         };
 
-        let currentTime = 0; // ms within cycle
+        let loopTime = 0; // 0 to 100
         let isPaused = false;
         let activeLead = 'I';
+        let currentPhase = "";
 
-        // --- PHYSICS: CARDIAC VECTOR SIMULATION ---
-        // We simulate the path of the tip of the cardiac dipole vector p(t) in 3D space
-        // The vector originates at (0,0,0).
-        // Coordinate system: X (Left), Y (Superior), Z (Anterior)
-        // Standard medical coordinates: X+ is Left arm, Y+ is Head, Z+ is Front.
-        // Three.js coordinates: X+ Right, Y+ Up, Z+ Front. We need to map carefully.
-        // Let's use Medical convention for calculation and map to Three.js for display.
-        // Medical: x (Left), y (Inf/Foot), z (Ant/Front).
-        // Calculation:
-        //   Lead I: 0 deg (Pure X)
-        //   Lead aVF: 90 deg (Pure Y)
+        // --- PHYSICS: VENTRICULAR DEPOLARIZATION VECTOR ---
+        // Calculating the vector P(t) during the QRS complex.
+        // Coordinate System (Medical Frontal Plane):
+        // X+ = 0° (Left Arm)
+        // Y+ = 90° (Foot/Inferior)
+        // Z+ = Anterior (used for 3D depth, though not projected in limb leads)
         
-        function getCardiacVector(t_normalized) {
-            // t is 0.0 to 1.0 representing one cardiac cycle
-            
+        function getQRSVector(progress) {
+            // progress is 0.0 to 1.0
             const p = new THREE.Vector3(0, 0, 0);
-            const t = t_normalized * 1000; // convert back to ms for easier logic
+            let phase = "";
 
-            // P Wave (0-100ms): Atrial Depolarization
-            // Vector goes Down, Left, Slightly Anterior
-            if (t >= 0 && t < 100) {
-                const localT = (t - 0) / 100; // 0 to 1
-                const magnitude = 0.15 * Math.sin(localT * Math.PI); // Hump shape
-                // Angle approx 45-60 degrees in frontal plane
-                p.x = magnitude * Math.cos(Math.PI / 4); 
-                p.y = magnitude * Math.sin(Math.PI / 4); 
-                p.z = magnitude * 0.2;
+            // 1. SEPTAL DEPOLARIZATION (Q wave part)
+            // Time: 0.0 - 0.15
+            // Normal Direction: Left to Right (~160 deg)
+            // We shift this slightly based on axis, but usually Septal is anatomically fixed relatively
+            if (progress < 0.15) {
+                phase = "Septal Activation";
+                const t = progress / 0.15; // 0-1
+                const magnitude = 0.3 * Math.sin(t * Math.PI); 
+                
+                // Septal vector is roughly opposite to the main axis but usually fixed rightward
+                // Let's make it static relative to anatomy for simplicity
+                const angle = 160 * (Math.PI / 180);
+                p.x = magnitude * Math.cos(angle);
+                p.y = magnitude * Math.sin(angle);
+                p.z = magnitude * 0.5; // Anterior
             }
             
-            // PR Segment (100-120ms): Isoelectric
-            else if (t >= 100 && t < 120) {
-                p.set(0, 0, 0);
-            }
-
-            // QRS Complex (120-220ms): Ventricular Depolarization
-            // Complex 3D loop
-            else if (t >= 120 && t < 220) {
-                const localT = (t - 120) / 100; // 0 to 1
+            // 2. MAIN VENTRICULAR ACTIVATION (R wave part)
+            // Time: 0.15 - 0.70
+            // This is the part that heavily depends on the ELECTRICAL AXIS
+            else if (progress < 0.70) {
+                phase = "Main Ventricular";
+                const t = (progress - 0.15) / 0.55; // 0-1
+                const magnitude = 1.8 * Math.sin(t * Math.PI); // Large magnitude
                 
-                // Q wave (Septal): Small, Right, Superior, Anterior
-                if (localT < 0.1) {
-                    const m = 0.1 * Math.sin((localT/0.1) * Math.PI);
-                    p.x = -m * 0.5; // Right
-                    p.y = -m * 0.5; // Superior (negative Y in our medical logic is Up?) No, let's define Y+ as Foot.
-                    // Let's stick to standard circle geometry: 0 deg is 3 o'clock (Left). 90 is 6 o'clock (Foot).
-                    // Q: -30 to -90 deg usually? No, septal q is usually away from V5/V6.
-                    // Let's simplify: Q is away from left.
-                    p.x = -0.1 * m;
-                    p.y = -0.1 * m; 
-                    p.z = 0.1 * m; 
-                }
-                // R wave (Main): Large, Left, Inferior, Posterior
-                else if (localT >= 0.1 && localT < 0.5) {
-                    const rT = (localT - 0.1) / 0.4;
-                    const m = 1.5 * Math.sin(rT * Math.PI); 
-                    // Normal axis ~60 degrees
-                    p.x = m * Math.cos(60 * Math.PI/180);
-                    p.y = m * Math.sin(60 * Math.PI/180);
-                    p.z = -m * 0.2; // Slightly posterior
-                }
-                // S wave (Basal): Small, Right, Superior, Posterior
-                else {
-                    const sT = (localT - 0.5) / 0.5;
-                    const m = 0.4 * Math.sin(sT * Math.PI);
-                    p.x = -m * 0.2;
-                    p.y = -m * 0.8; // Superior (Negative Y)
-                    p.z = -m * 0.1;
-                }
+                // Use the User Defined Axis Angle
+                const angle = CONFIG.axisAngle * (Math.PI / 180);
+                
+                p.x = magnitude * Math.cos(angle);
+                p.y = magnitude * Math.sin(angle);
+                p.z = -magnitude * 0.2; // Slightly posterior
             }
 
-            // ST Segment (220-320ms): Isoelectric (mostly)
-            else if (t >= 220 && t < 320) {
-                p.set(0, 0, 0);
+            // 3. BASAL ACTIVATION (S wave part)
+            // Time: 0.70 - 1.0
+            // Usually opposite to apex, towards base (~ -100 deg)
+            // If axis shifts, base shifts too? Usually yes.
+            else {
+                phase = "Basal Activation";
+                const t = (progress - 0.70) / 0.30; // 0-1
+                const magnitude = 0.5 * Math.sin(t * Math.PI); 
+                
+                // Base is roughly Axis + 180 +/- deviation
+                // Let's approximate Base as (Axis - 160) degrees to keep loop shape
+                const angle = (CONFIG.axisAngle - 160) * (Math.PI / 180);
+                
+                p.x = magnitude * Math.cos(angle);
+                p.y = magnitude * Math.sin(angle);
+                p.z = -magnitude * 0.4; // Posterior
             }
 
-            // T Wave (320-520ms): Ventricular Repolarization
-            // Broad, Similar direction to R but smaller magnitude
-            else if (t >= 320 && t < 520) {
-                const localT = (t - 320) / 200;
-                const m = 0.35 * Math.sin(localT * Math.PI);
-                // Angle similar to R wave (concordance)
-                p.x = m * Math.cos(50 * Math.PI/180);
-                p.y = m * Math.sin(50 * Math.PI/180);
-                p.z = m * 0.1;
-            }
-
-            return p;
+            return { vec: p, phase: phase };
         }
 
-        // --- LEAD DEFINITIONS ---
-        // Vectors pointing to the positive electrode of the lead
-        // Coordinates: x (Left), y (Foot), z (Front)
+        // --- LEAD DEFINITIONS (Frontal Plane) ---
         const LEADS = {
-            'I': { vec: new THREE.Vector3(1, 0, 0), name: "Lead I", desc: "Lateral (0°). Looks at the heart from the left shoulder." },
-            'II': { vec: new THREE.Vector3(Math.cos(60*Math.PI/180), Math.sin(60*Math.PI/180), 0), name: "Lead II", desc: "Inferior (60°). The main axis of the normal heart." },
-            'III': { vec: new THREE.Vector3(Math.cos(120*Math.PI/180), Math.sin(120*Math.PI/180), 0), name: "Lead III", desc: "Inferior (120°). Looks at the right side/bottom." },
-            'aVR': { vec: new THREE.Vector3(Math.cos(-150*Math.PI/180), Math.sin(-150*Math.PI/180), 0), name: "aVR", desc: "Right arm (-150°). Looks into the ventricles." },
-            'aVL': { vec: new THREE.Vector3(Math.cos(-30*Math.PI/180), Math.sin(-30*Math.PI/180), 0), name: "aVL", desc: "Left arm (-30°). High lateral wall." },
-            'aVF': { vec: new THREE.Vector3(0, 1, 0), name: "aVF", desc: "Foot (90°). Pure inferior view." },
-            
-            // Precordial leads roughly in transverse plane (X-Z)
-            // V1: 4th intercostal space right (Ant/Septal) -> Angle ~ -45 to -30 in transverse? Let's approx.
-            // We map X as Left, Z as Front.
-            // V1 is Right (-X) and Front (+Z)
-            'V1': { vec: new THREE.Vector3(-0.5, 0.2, 0.8).normalize(), name: "V1", desc: "Septal. Looks at right ventricle." },
-            'V2': { vec: new THREE.Vector3(0, 0.2, 1).normalize(), name: "V2", desc: "Septal. Looks directly anterior." },
-            'V3': { vec: new THREE.Vector3(0.5, 0.2, 0.8).normalize(), name: "V3", desc: "Anterior." },
-            'V4': { vec: new THREE.Vector3(0.8, 0.2, 0.5).normalize(), name: "V4", desc: "Apical. Looks at the apex." },
-            'V5': { vec: new THREE.Vector3(0.9, 0, 0.2).normalize(), name: "V5", desc: "Lateral. Low lateral wall." },
-            'V6': { vec: new THREE.Vector3(1, 0, 0).normalize(), name: "V6", desc: "Lateral. High lateral wall." },
+            'I':   { angle: 0,    name: "Lead I", desc: "Left Lateral View (0°)" },
+            'II':  { angle: 60,   name: "Lead II", desc: "Inferior View (+60°)" },
+            'III': { angle: 120,  name: "Lead III", desc: "Right Inferior View (+120°)" },
+            'aVR': { angle: -150, name: "aVR", desc: "Right Atrium View (-150°)" },
+            'aVL': { angle: -30,  name: "aVL", desc: "High Lateral View (-30°)" },
+            'aVF': { angle: 90,   name: "aVF", desc: "Inferior Foot View (+90°)" }
         };
+
+        // Convert angles to Vectors
+        Object.keys(LEADS).forEach(key => {
+            const rad = LEADS[key].angle * (Math.PI / 180);
+            LEADS[key].vec = new THREE.Vector3(Math.cos(rad), Math.sin(rad), 0);
+        });
 
         // --- 3D SCENE SETUP ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        // Soft gray fog for depth
         scene.fog = new THREE.FogExp2(0xf8f9fa, 0.02);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 6);
+        const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 8); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -294,258 +322,244 @@
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.minDistance = 3;
-        controls.maxDistance = 10;
+        controls.minDistance = 4;
+        controls.maxDistance = 12;
+        controls.enablePan = false;
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(5, 10, 7);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(5, 5, 10);
         scene.add(dirLight);
 
-        // --- 3D OBJECTS ---
+        // --- OBJECTS ---
 
-        // 1. The Torso/Frame (Abstract)
-        const torsoGeo = new THREE.IcosahedronGeometry(2.5, 1);
-        const torsoMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0, wireframe: true, transparent: true, opacity: 0.1 });
-        const torso = new THREE.Mesh(torsoGeo, torsoMat);
-        scene.add(torso);
+        // 1. Einthoven's Triangle (Visual Aid)
+        const triangleGroup = new THREE.Group();
+        const circleGeo = new THREE.RingGeometry(3.0, 3.02, 64);
+        const circleMat = new THREE.MeshBasicMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+        const circle = new THREE.Mesh(circleGeo, circleMat);
+        scene.add(circle);
+
+        const leadsVisual = new THREE.Group();
+        Object.keys(LEADS).forEach(key => {
+            const vec = LEADS[key].vec;
+            const x = vec.x * 3;
+            const y = -vec.y * 3; // Invert Y for 3D visual
+            const points = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(x, y, 0)];
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.3 }));
+            leadsVisual.add(line);
+        });
+        scene.add(leadsVisual);
 
         // 2. The Heart (Stylized)
-        const heartGroup = new THREE.Group();
-        scene.add(heartGroup);
-        
-        // Simple heart shape using spheres
-        const ventricleGeo = new THREE.SphereGeometry(0.6, 32, 32);
-        const ventricleMat = new THREE.MeshPhongMaterial({ color: 0xffe4e6, transparent: true, opacity: 0.8 });
-        const ventricle = new THREE.Mesh(ventricleGeo, ventricleMat);
-        ventricle.scale.set(0.8, 1.2, 0.8);
-        ventricle.rotation.z = -30 * Math.PI / 180; // Axis tilt
-        heartGroup.add(ventricle);
+        const heartGeo = new THREE.SphereGeometry(0.4, 32, 32);
+        // Elongate slightly to show axis better
+        heartGeo.scale(0.8, 1.2, 0.8); 
+        const heartMat = new THREE.MeshPhongMaterial({ color: 0xfecaca, transparent: true, opacity: 0.9, shininess: 50 });
+        const heart = new THREE.Mesh(heartGeo, heartMat);
+        // We will rotate this heart mesh to match the axis
+        scene.add(heart);
 
-        // 3. The Cardiac Vector Arrow
-        const arrowDir = new THREE.Vector3(1, 0, 0);
-        const arrowOrigin = new THREE.Vector3(0, 0, 0);
-        const arrowLen = 1;
-        const arrowColor = 0xef4444; // Red
-        const cardiacArrow = new THREE.ArrowHelper(arrowDir, arrowOrigin, arrowLen, arrowColor, 0.2, 0.1);
-        // Make arrow thicker using a cylinder for the shaft (ArrowHelper is thin)
-        // We'll stick to ArrowHelper for simplicity but maybe scale it up visually later if needed?
-        // Let's create a custom thick arrow
-        const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 12);
+        // 3. The Cardiac Vector (Arrow)
+        const arrowGroup = new THREE.Group();
+        scene.add(arrowGroup);
+        const shaftGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 16);
         shaftGeo.translate(0, 0.5, 0);
-        shaftGeo.rotateZ(-Math.PI/2); // Point along X
-        const headGeo = new THREE.ConeGeometry(0.12, 0.3, 12);
+        shaftGeo.rotateZ(-Math.PI/2); 
+        const shaft = new THREE.Mesh(shaftGeo, new THREE.MeshPhongMaterial({ color: 0xdc2626 }));
+        const headGeo = new THREE.ConeGeometry(0.18, 0.4, 16);
         headGeo.translate(0, 1, 0);
         headGeo.rotateZ(-Math.PI/2);
-        
-        const arrowMat = new THREE.MeshPhongMaterial({ color: 0xef4444, shininess: 100 });
-        const customArrow = new THREE.Group();
-        const shaft = new THREE.Mesh(shaftGeo, arrowMat);
-        const head = new THREE.Mesh(headGeo, arrowMat);
-        customArrow.add(shaft);
-        customArrow.add(head);
-        scene.add(customArrow);
+        const head = new THREE.Mesh(headGeo, new THREE.MeshPhongMaterial({ color: 0xdc2626 }));
+        arrowGroup.add(shaft);
+        arrowGroup.add(head);
 
-        // 4. The Lead Axis Line (Blue)
-        const leadLineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5, linewidth: 2 });
-        const leadLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3,0,0), new THREE.Vector3(3,0,0)]);
-        const leadLine = new THREE.Line(leadLineGeo, leadLineMat);
-        scene.add(leadLine);
+        // 4. Active Lead Axis (Blue Line)
+        const axisLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-10,0,0), new THREE.Vector3(10,0,0)]);
+        const axisLine = new THREE.Line(axisLineGeo, new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 }));
+        scene.add(axisLine);
 
-        // 5. Projection Line (Dotted, connecting arrow tip to lead axis)
-        const projLineMat = new THREE.LineDashedMaterial({ color: 0x94a3b8, dashSize: 0.1, gapSize: 0.05 });
+        // 5. Projection Line (Dashed)
         const projLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0)]);
-        const projLine = new THREE.Line(projLineGeo, projLineMat);
+        const projLine = new THREE.Line(projLineGeo, new THREE.LineDashedMaterial({ color: 0x3b82f6, dashSize: 0.1, gapSize: 0.1 }));
         projLine.computeLineDistances();
         scene.add(projLine);
 
-        // --- 2D GRAPH SETUP ---
+        // --- 2D GRAPH ---
         const canvas = document.getElementById('ecg-canvas');
         const ctx = canvas.getContext('2d');
-        
-        // Graph state
         let history = [];
-        const maxPoints = 400;
-        
+        const maxHistory = 300;
+
         function resizeCanvas() {
             canvas.width = canvas.clientWidth * window.devicePixelRatio;
             canvas.height = canvas.clientHeight * window.devicePixelRatio;
             ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
         }
-        window.addEventListener('resize', () => {
-            resizeCanvas();
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        // --- MAIN LOOP ---
+        // --- CONTROLS BINDING ---
+        const speedSlider = document.getElementById('speed-slider');
+        const speedVal = document.getElementById('speed-val');
+        speedSlider.addEventListener('input', (e) => {
+            CONFIG.speed = parseFloat(e.target.value);
+            speedVal.innerText = CONFIG.speed + "x";
+        });
+
+        const axisSlider = document.getElementById('axis-slider');
+        const axisVal = document.getElementById('axis-val');
+        axisSlider.addEventListener('input', (e) => {
+            CONFIG.axisAngle = parseInt(e.target.value);
+            axisVal.innerText = (CONFIG.axisAngle > 0 ? "+" : "") + CONFIG.axisAngle + "°";
+            
+            // Update Heart Model Rotation immediately
+            // Normal Heart (60 deg) means the tip points to bottom-left.
+            // In 3D visual: Y is Up. Medical 60deg is -60 from X axis in standard math?
+            // Medical 0 is X+. Medical 90 is Y-. 
+            // So angle theta in Medical -> -theta in 3D Visual Z-Rotation.
+            // But our heart geometry is vertical initially (Y-aligned). 
+            // Let's just map it: -60 deg rotation puts it in normal axis.
+            // So rotationZ = -(axis - 90) * rad? No, simpler.
+            // Visual Angle = -Medical Angle.
+            heart.rotation.z = -CONFIG.axisAngle * (Math.PI / 180) + (90 * Math.PI/180); 
+            // Adding 90 offset because sphere geometry y-axis is default up
+        });
+        // Trigger initial rotation
+        heart.rotation.z = -CONFIG.axisAngle * (Math.PI / 180) + (90 * Math.PI/180);
+
+        const playBtn = document.getElementById('play-pause-btn');
+        playBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            playBtn.innerHTML = isPaused 
+                ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+                : '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>';
+        });
+
+        window.setLead = function(name) {
+            activeLead = name;
+            document.querySelectorAll('.lead-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.innerText.includes(name)) btn.classList.add('active');
+            });
+            document.getElementById('lead-title').innerText = LEADS[name].name;
+            document.getElementById('lead-desc').innerText = LEADS[name].desc;
+            history = []; // Clear graph
+        }
+
+        // --- ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
             if (!isPaused) {
-                currentTime = (currentTime + (16 * CONFIG.speed)) % CONFIG.cycleDuration;
+                loopTime += CONFIG.speed;
+                if (loopTime > CONFIG.loopDuration) {
+                    loopTime = 0;
+                }
             }
 
-            const t_norm = currentTime / CONFIG.cycleDuration;
-            
-            // 1. Physics: Get Cardiac Vector p(t)
-            // p is calculated in Medical Coords: x (Left), y (Foot), z (Front)
-            const p_med = getCardiacVector(t_norm);
+            const progress = loopTime / CONFIG.loopDuration;
 
-            // 2. Map to Three.js Coords:
-            // ThreeJS: x (Right), y (Up), z (Front)
-            // Med X (Left) -> Three -X
-            // Med Y (Foot) -> Three -Y
-            // Med Z (Front) -> Three +Z
-            const p_three = new THREE.Vector3(-p_med.x, -p_med.y, p_med.z);
+            // 1. PHYSICS
+            const data = getQRSVector(progress);
+            const p_med = data.vec; // Medical coords (x,y,z)
+            document.getElementById('phase-indicator').innerText = data.phase;
 
-            // Update 3D Arrow
-            const len = p_three.length();
-            if (len < 0.01) {
-                customArrow.visible = false;
+            // 2. VISUALS (Map Medical -> 3D)
+            const p_vis = new THREE.Vector3(p_med.x, -p_med.y, p_med.z);
+            const magnitude = p_vis.length();
+
+            if (magnitude > 0.01) {
+                arrowGroup.visible = true;
+                arrowGroup.lookAt(p_vis);
+                arrowGroup.scale.set(1,1,1); 
+                arrowGroup.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), p_vis.clone().normalize());
+                arrowGroup.scale.set(magnitude, magnitude, magnitude); 
             } else {
-                customArrow.visible = true;
-                customArrow.lookAt(p_three);
-                customArrow.scale.set(len, len, len); // scale length
-                // Fix distortion from uniform scaling on lookAt geometry
-                // We need to scale only the Z axis of the group if we used lookAt?
-                // Actually, since geometry points X, lookAt aligns +Z. 
-                // Let's simplify: Just set position/rotation manually or use setDirection if using ArrowHelper.
-                // Reverting to manual math for the custom group:
-                customArrow.scale.set(1,1,1); // Reset
-                customArrow.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), p_three.clone().normalize());
-                customArrow.scale.set(len, 1, 1); // Only scale length (X axis of mesh)
+                arrowGroup.visible = false;
             }
 
-            // 3. Physics: Calculate Projection onto Active Lead
-            // Lead vectors are defined in Medical Coords.
-            const leadInfo = LEADS[activeLead];
-            const leadVec = leadInfo.vec; // Medical coords
+            // 3. LEAD PROJECTION
+            const leadMed = LEADS[activeLead].vec;
+            const leadVis = new THREE.Vector3(leadMed.x, -leadMed.y, 0);
             
-            // Dot Product: V = p . lead
-            const voltage = p_med.dot(leadVec);
+            axisLine.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), leadVis);
 
-            // Update UI Value
-            document.getElementById('current-voltage').innerText = voltage.toFixed(3) + " mV";
+            const voltage = p_med.dot(leadMed);
+            document.getElementById('current-voltage').innerText = voltage.toFixed(2);
 
-            // 4. Update Lead Line in 3D (ThreeJS Coords)
-            // Lead Vec Medical (x,y,z) -> Three (-x, -y, z)
-            const leadVecThree = new THREE.Vector3(-leadVec.x, -leadVec.y, leadVec.z);
+            const scalarProj = p_vis.dot(leadVis.clone().normalize());
+            const projPoint = leadVis.clone().normalize().multiplyScalar(scalarProj);
             
-            // Align the blue line to the lead vector
-            // We want the line to pass through origin and follow leadVecThree
-            // Lead line geometry is -3 to +3 on X axis. We rotate it.
-            leadLine.quaternion.setFromUnitVectors(new THREE.Vector3(1,0,0), leadVecThree);
-
-            // 5. Update Projection Line (Dotted)
-            // Connects Arrow Tip (p_three) to the point on the line.
-            // Point on line = Projection of p_three onto leadVecThree
-            const scalarProj = p_three.dot(leadVecThree); // should match voltage magnitude roughly
-            const projPoint = leadVecThree.clone().multiplyScalar(scalarProj);
-            
-            projLineGeo.setFromPoints([p_three, projPoint]);
-            projLineGeo.verticesNeedUpdate = true; // For older threejs, but buffergeo needs attribute update
-            projLine.geometry.attributes.position.setXYZ(0, p_three.x, p_three.y, p_three.z);
-            projLine.geometry.attributes.position.setXYZ(1, projPoint.x, projPoint.y, projPoint.z);
-            projLine.geometry.attributes.position.needsUpdate = true;
+            projLine.geometry.setFromPoints([p_vis, projPoint]);
             projLine.computeLineDistances();
+            projLine.geometry.attributes.position.needsUpdate = true;
 
-            // 6. Update 2D Graph
+            // 4. GRAPH
             if (!isPaused) {
                 history.push(voltage);
-                if (history.length > maxPoints) history.shift();
+                if (history.length > maxHistory) history.shift();
             }
-            drawGraph();
+            renderGraph();
 
             controls.update();
             renderer.render(scene, camera);
         }
 
-        function drawGraph() {
+        function renderGraph() {
             const w = canvas.clientWidth;
             const h = canvas.clientHeight;
-            
             ctx.clearRect(0, 0, w, h);
-            
+
             // Grid
-            ctx.strokeStyle = '#fecaca'; // red-200
+            ctx.strokeStyle = '#fee2e2';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            // Draw simple grid lines
-            const step = w / 20;
-            for(let x=0; x<w; x+=step) { ctx.moveTo(x,0); ctx.lineTo(x,h); }
-            for(let y=0; y<h; y+=step) { ctx.moveTo(0,y); ctx.lineTo(w,y); }
+            const gw = w/20;
+            for(let i=0; i<w; i+=gw) { ctx.moveTo(i,0); ctx.lineTo(i,h); }
+            for(let i=0; i<h; i+=gw) { ctx.moveTo(0,i); ctx.lineTo(w,i); }
             ctx.stroke();
 
             // Baseline
-            const centerY = h / 2;
-            ctx.strokeStyle = '#991b1b'; // red-800
+            const mid = h/2;
+            ctx.strokeStyle = '#ef4444';
             ctx.lineWidth = 0.5;
             ctx.beginPath();
-            ctx.moveTo(0, centerY);
-            ctx.lineTo(w, centerY);
+            ctx.moveTo(0, mid);
+            ctx.lineTo(w, mid);
             ctx.stroke();
 
-            // Waveform
-            if (history.length < 2) return;
-
-            ctx.strokeStyle = '#1f2937'; // gray-800
-            ctx.lineWidth = 2.5;
+            // Plot
+            ctx.strokeStyle = '#1f2937';
+            ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.beginPath();
+            
+            const dx = w / maxHistory;
+            const scaleY = (h/2) * 0.8; 
 
-            const xStep = w / maxPoints;
-            // Voltage scaling: 1mV = 50px roughly
-            const yScale = 100; 
-
-            for (let i = 0; i < history.length; i++) {
-                const x = i * xStep;
-                const y = centerY - (history[i] * yScale);
-                if (i === 0) ctx.moveTo(x, y);
+            for(let i=0; i<history.length; i++) {
+                const x = i * dx;
+                const y = mid - (history[i] * scaleY / 2);
+                if(i===0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
 
-            // Current Point Dot
-            const lastX = (history.length - 1) * xStep;
-            const lastY = centerY - (history[history.length - 1] * yScale);
-            ctx.fillStyle = '#ef4444';
-            ctx.beginPath();
-            ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
-            ctx.fill();
+            if(history.length > 0) {
+                const lastX = (history.length-1) * dx;
+                const lastY = mid - (history[history.length-1] * scaleY / 2);
+                ctx.fillStyle = '#dc2626';
+                ctx.beginPath();
+                ctx.arc(lastX, lastY, 5, 0, Math.PI*2);
+                ctx.fill();
+            }
         }
 
-        // --- CONTROLS ---
-        window.setLead = function(leadName) {
-            activeLead = leadName;
-            
-            // Update UI
-            document.querySelectorAll('.lead-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.innerText.includes(leadName) || btn.innerText === leadName) {
-                    btn.classList.add('active');
-                }
-            });
-
-            const info = LEADS[leadName];
-            document.getElementById('lead-title').innerText = info.name;
-            document.getElementById('lead-desc').innerText = info.desc;
-
-            // Clear graph history for smooth transition
-            history = [];
-        };
-
-        document.getElementById('play-pause-btn').addEventListener('click', function() {
-            isPaused = !isPaused;
-            this.innerText = isPaused ? "Resume Simulation" : "Pause Simulation";
-        });
-
-        // Initialize
         animate();
 
     </script>
